@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Background gradient: brand blue -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2980b9"/>
+      <stop offset="55%" stop-color="#1a5276"/>
+      <stop offset="100%" stop-color="#154360"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="78%" cy="22%" r="55%">
+      <stop offset="0%" stop-color="#e67e22" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#e67e22" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="handLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#d6eaf8"/>
+    </linearGradient>
+    <linearGradient id="handRight" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f5b041"/>
+      <stop offset="100%" stop-color="#e67e22"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background (iOS-style) -->
+  <rect width="1024" height="1024" rx="230" ry="230" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="230" ry="230" fill="url(#glow)"/>
+
+  <!-- Decorative ring suggesting ecosystem / community -->
+  <circle cx="512" cy="512" r="340" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"/>
+  <circle cx="512" cy="512" r="280" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2"/>
+
+  <!-- ─── HANDSHAKE: simplified, iconic, two arms meeting ─── -->
+  <g transform="translate(512, 540)">
+
+    <!-- Left arm (white) -->
+    <g>
+      <!-- Forearm -->
+      <path d="M -340 60
+               Q -280 30, -200 25
+               L -90 35
+               Q -55 40, -40 60
+               L -50 110
+               Q -75 125, -110 120
+               L -240 105
+               Q -310 100, -340 110 Z"
+            fill="url(#handLeft)" opacity="0.95"/>
+
+      <!-- Hand/grip -->
+      <path d="M -90 25
+               Q -60 20, -30 30
+               Q 0 40, 25 65
+               L 35 95
+               Q 30 130, -10 135
+               L -70 130
+               Q -100 125, -110 100
+               L -100 50 Z"
+            fill="#ffffff"/>
+    </g>
+
+    <!-- Right arm (orange/accent) -->
+    <g>
+      <path d="M 340 60
+               Q 280 30, 200 25
+               L 90 35
+               Q 55 40, 40 60
+               L 50 110
+               Q 75 125, 110 120
+               L 240 105
+               Q 310 100, 340 110 Z"
+            fill="url(#handRight)" opacity="0.95"/>
+
+      <path d="M 90 25
+               Q 60 20, 30 30
+               Q 0 40, -25 65
+               L -35 95
+               Q -30 130, 10 135
+               L 70 130
+               Q 100 125, 110 100
+               L 100 50 Z"
+            fill="#f5b041"/>
+    </g>
+
+    <!-- Central grip / interlocking thumbs -->
+    <g>
+      <ellipse cx="0" cy="78" rx="55" ry="38" fill="rgba(255,255,255,0.25)"/>
+      <path d="M -25 50 Q 0 35, 25 50 L 25 95 Q 0 110, -25 95 Z"
+            fill="rgba(255,255,255,0.4)"/>
+    </g>
+
+    <!-- Subtle shadow underneath -->
+    <ellipse cx="0" cy="180" rx="280" ry="20" fill="rgba(0,0,0,0.15)"/>
+  </g>
+
+  <!-- Small upward arrows / sparks suggesting growth -->
+  <g opacity="0.55" fill="#f5b041">
+    <circle cx="280" cy="280" r="6"/>
+    <circle cx="744" cy="280" r="8"/>
+    <circle cx="200" cy="420" r="4"/>
+    <circle cx="824" cy="420" r="5"/>
+  </g>
+</svg>

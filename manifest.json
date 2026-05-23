@@ -1,0 +1,59 @@
+{
+  "name": "Mentor & Coach — Inclusione Lavorativa",
+  "short_name": "Mentor & Coach",
+  "description": "Strumento di accompagnamento e valutazione per mentor e coach nell'ecosistema di inclusione lavorativa.",
+  "id": "/",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#1a5276",
+  "theme_color": "#1a5276",
+  "lang": "it",
+  "dir": "ltr",
+  "categories": ["productivity", "education", "social"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Fase Iniziale",
+      "short_name": "Iniziale",
+      "description": "Crea un nuovo soggetto o riprendi la profilazione iniziale",
+      "url": "./index.html#initial",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Fase Ongoing",
+      "short_name": "Ongoing",
+      "description": "Compila le verifiche periodiche per un soggetto",
+      "url": "./index.html#ongoing",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Report di sintesi",
+      "short_name": "Report",
+      "description": "Visualizza il report di un soggetto",
+      "url": "./index.html#report",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
