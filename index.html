@@ -1207,60 +1207,99 @@ body {
 .privacy-list li { margin-left: 14px; }
 
 /* ════════════ PRINT (export PDF) ════════════ */
+/* ════════════ PRINT (export PDF) ════════════
+   Strategy: at print time we hide EVERYTHING except #printRoot,
+   a separate container we populate via JS just before window.print().
+   This sidesteps any layout artifacts from the phone-frame mockup. */
+#printRoot {
+    display: none;
+    background: white;
+    color: #1a1a2e;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+#printRoot .print-doc-header {
+    text-align: center;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #1a5276;
+}
+#printRoot .print-doc-header h1 {
+    font-size: 20px;
+    color: #1a5276;
+    margin-bottom: 4px;
+    font-weight: 800;
+}
+#printRoot .print-doc-header .meta {
+    font-size: 11px;
+    color: #666;
+}
+
 @media print {
     @page { size: A4; margin: 14mm; }
-    body {
+    html, body {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
         background: white !important;
         display: block !important;
         padding: 0 !important;
+        margin: 0 !important;
+        color: #000 !important;
     }
-    .phone-frame {
-        max-width: none !important;
-        max-height: none !important;
-        height: auto !important;
-        border-radius: 0 !important;
+    /* Hide all top-level UI; only the print container survives */
+    body > *:not(#printRoot) { display: none !important; }
+
+    #printRoot {
+        display: block !important;
+        width: 100% !important;
+    }
+    #printRoot * {
+        animation: none !important;
+        transition: none !important;
         box-shadow: none !important;
     }
-    .phone-frame::before,
-    .status-spacer,
-    .header,
-    .footer-bar,
-    .install-hint,
-    .android-install-btn,
-    .splash,
-    .privacy-overlay,
-    .modal-overlay,
-    .toast,
-    .no-print { display: none !important; }
-    .main {
-        overflow: visible !important;
-        padding: 0 !important;
-    }
-    .screen { display: none !important; animation: none !important; }
-    .screen.active { display: block !important; }
-    .screen.active .no-print { display: none !important; }
-    .question-card, .suggestion-card, .detail-card, .phase-card, .radar-card {
-        box-shadow: none !important;
+
+    /* Card-like blocks shouldn't be split mid-card if avoidable */
+    #printRoot .question-card,
+    #printRoot .suggestion-card,
+    #printRoot .detail-card,
+    #printRoot .radar-card {
         border: 1px solid #ddd !important;
         page-break-inside: avoid;
+        break-inside: avoid;
+        margin-bottom: 8px;
     }
-    .report-summary {
+
+    /* Section titles should stay with the first card after them */
+    #printRoot .section-title {
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+
+    /* Preserve background fills (report summary, score badges) */
+    #printRoot .report-summary {
         background: #1a5276 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        color: white !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
-    .radar-card, .detail-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .print-header {
-        display: block !important;
-        text-align: center;
-        margin-bottom: 18px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #1a5276;
+    #printRoot .radar-card,
+    #printRoot .detail-card,
+    #printRoot .question-card,
+    #printRoot .suggestion-card {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
-    .print-header h1 { font-size: 20px; color: #1a5276; margin-bottom: 4px; }
-    .print-header .meta { font-size: 11px; color: #666; }
+    #printRoot .radar-svg {
+        max-width: 420px;
+        display: block;
+        margin: 0 auto;
+    }
+    /* Buttons / interactive UI never belong in the PDF */
+    #printRoot .no-print,
+    #printRoot button { display: none !important; }
 }
-.print-header { display: none; }
 </style>
 </head>
 <body>
@@ -1288,12 +1327,6 @@ body {
         </div>
         <h1 id="hdrTitle">Inclusione <span>Lavorativa</span></h1>
         <div class="header-sub" id="hdrSub">Strumento di accompagnamento e valutazione</div>
-    </div>
-
-    <!-- Print-only header (visible only in stampa/PDF export) -->
-    <div class="print-header">
-        <h1>Mentor &amp; Coach — Report di Sintesi</h1>
-        <div class="meta" id="printMeta">—</div>
     </div>
 
     <!-- MAIN -->
@@ -2064,16 +2097,47 @@ function buildDetailRow(num, text, rating, note) {
 
 // ════════════════════════════════════════════════════════════════════
 // PDF EXPORT (via browser print → "Salva come PDF")
+// We build a separate #printRoot container with a clean copy of the
+// report content, OUTSIDE the phone-frame mockup. The @media print CSS
+// hides everything except #printRoot, so the PDF rendering is not
+// confused by the phone viewport's fixed dimensions / overflow:hidden.
 // ════════════════════════════════════════════════════════════════════
 function exportPDF() {
     const subj = currentSubject();
-    if (subj) {
-        const fullName = `${subj.nome} ${subj.cognome}`.trim();
-        document.getElementById('printMeta').textContent =
-            `Soggetto: ${fullName} · Generato il ${fmtDate(Date.now())}`;
+    if (!subj) { showToast('Nessun soggetto selezionato'); return; }
+
+    const fullName = `${subj.nome} ${subj.cognome}`.trim();
+
+    // (Re)create the print root
+    let printRoot = document.getElementById('printRoot');
+    if (printRoot) printRoot.remove();
+    printRoot = document.createElement('div');
+    printRoot.id = 'printRoot';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'print-doc-header';
+    header.innerHTML = `
+        <h1>Mentor &amp; Coach — Report di Sintesi</h1>
+        <div class="meta">Soggetto: ${escapeHtml(fullName)} &middot; Generato il ${fmtDate(Date.now())}</div>
+    `;
+    printRoot.appendChild(header);
+
+    // Clone the rendered report content
+    const reportContent = document.getElementById('reportContent');
+    if (reportContent) {
+        const clone = reportContent.cloneNode(true);
+        // Strip interactive elements (Indietro / Esporta PDF)
+        clone.querySelectorAll('.no-print, button').forEach(el => el.remove());
+        printRoot.appendChild(clone);
     }
-    // Slight delay to let the print header populate before dialog opens
-    setTimeout(() => window.print(), 100);
+
+    document.body.appendChild(printRoot);
+
+    // Give the browser a tick to lay out the new node before opening dialog
+    setTimeout(() => {
+        window.print();
+    }, 120);
 }
 
 // ════════════════════════════════════════════════════════════════════
