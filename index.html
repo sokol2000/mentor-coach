@@ -785,6 +785,16 @@ body {
     color: var(--primary-dark);
 }
 
+/* Inline (horizontal) selector — gender, yes/no */
+.select-inline {
+    display: flex;
+    gap: 8px;
+}
+.select-inline .select-opt {
+    flex: 1;
+    text-align: center;
+}
+
 /* Modal */
 .modal-overlay {
     position: absolute;
@@ -802,6 +812,9 @@ body {
     border-radius: 24px 24px 0 0;
     padding: 22px 20px 30px;
     animation: slideUp 0.3s ease;
+    max-height: 90%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 @keyframes slideUp {
     from { transform: translateY(100%); }
@@ -1463,7 +1476,7 @@ body {
         <div class="modal">
             <div class="modal-handle"></div>
             <div class="modal-title">Nuovo soggetto</div>
-            <div class="modal-desc">Inserisci Nome e Cognome della persona che stai accompagnando nel percorso di inclusione.</div>
+            <div class="modal-desc">Inserisci i dati della persona che stai accompagnando nel percorso di inclusione.</div>
 
             <div class="modal-row">
                 <div class="modal-label">Nome</div>
@@ -1473,6 +1486,46 @@ body {
             <div class="modal-row">
                 <div class="modal-label">Cognome</div>
                 <input type="text" class="text-input" id="inputCognome" placeholder="es. Rossi" maxlength="40" autocomplete="family-name">
+            </div>
+
+            <div style="display:flex;gap:12px;">
+                <div class="modal-row" style="flex:0 0 90px;">
+                    <div class="modal-label">Età</div>
+                    <input type="number" class="text-input" id="inputEta" placeholder="es. 24" min="0" max="120" inputmode="numeric">
+                </div>
+                <div class="modal-row" style="flex:1;">
+                    <div class="modal-label">Genere</div>
+                    <div class="select-inline" id="genereSelect">
+                        <button type="button" class="select-opt" data-val="M">M</button>
+                        <button type="button" class="select-opt" data-val="F">F</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-row">
+                <div class="modal-label">È appartenente ad una specifica categoria?</div>
+                <div class="select-inline" id="categoriaToggle">
+                    <button type="button" class="select-opt" data-val="si">Sì</button>
+                    <button type="button" class="select-opt" data-val="no">No</button>
+                </div>
+            </div>
+
+            <div class="modal-row" id="categoriaListRow" style="display:none;">
+                <div class="modal-label">Se sì, a quale categoria appartiene?</div>
+                <div class="select-row" id="categoriaSelect">
+                    <button type="button" class="select-opt" data-val="Disabile riconosciuto legalmente">Disabile riconosciuto legalmente</button>
+                    <button type="button" class="select-opt" data-val="Immigrato/Rifugiato">Immigrato / Rifugiato</button>
+                    <button type="button" class="select-opt" data-val="Orfano o coniuge superstite (deceduto per causa lavoro)">Orfano o coniuge superstite (deceduto per causa lavoro)</button>
+                    <button type="button" class="select-opt" data-val="Figlio o coniuge di vittime del terrorismo e della criminalità organizzata">Figlio o coniuge di vittime del terrorismo e della c.o.</button>
+                    <button type="button" class="select-opt" data-val="Care leaver (per provvedimento giudiziario)">Care leaver (provvedimento giudiziario)</button>
+                    <button type="button" class="select-opt" data-val="NEET (15-24 anni non occupati e non in formazione)">NEET (15-24 anni, non occupati né in formazione)</button>
+                    <button type="button" class="select-opt" data-val="Donne in uscita da violenza">Donne in uscita da violenza</button>
+                    <button type="button" class="select-opt" data-val="Lavoratore Over 50 disoccupato (re-skilling)">Lavoratore Over 50 disoccupato (re-skilling)</button>
+                    <button type="button" class="select-opt" data-val="Caregiver familiare">Caregiver familiare</button>
+                    <button type="button" class="select-opt" data-val="Ex detenuto o ancora coatto">Ex detenuto o ancora coatto</button>
+                    <button type="button" class="select-opt" data-val="Altro">Altro (specificare)</button>
+                </div>
+                <input type="text" class="text-input" id="inputCategoriaAltro" placeholder="Specifica la categoria…" maxlength="80" style="display:none;margin-top:8px;">
             </div>
 
             <div style="display:flex;gap:8px;margin-top:8px;">
@@ -1644,11 +1697,17 @@ let currentSubjectId = null;
 let currentScreen = 'home';
 let pickerPhase = null; // 'initial' | 'ongoing' | 'report'
 
-function emptySubject(nome, cognome) {
+function emptySubject(data) {
+    data = data || {};
     return {
         id: uid(),
-        nome: (nome || '').trim(),
-        cognome: (cognome || '').trim(),
+        nome: (data.nome || '').trim(),
+        cognome: (data.cognome || '').trim(),
+        eta: (data.eta || '').toString().trim(),
+        genere: data.genere || '',          // 'M' | 'F' | ''
+        categoria: !!data.categoria,         // true if belongs to a category
+        categoriaTipo: data.categoriaTipo || '', // selected category label
+        categoriaAltro: (data.categoriaAltro || '').trim(), // free text when "Altro"
         createdAt: Date.now(),
         initial: { ratings: [0,0,0,0,0,0], notes: ["","","","","",""], updatedAt: null },
         ongoing: { ratings: [0,0,0,0,0,0], notes: ["","","","","",""], updatedAt: null }
@@ -1669,6 +1728,11 @@ function loadState() {
             parsed.subjects.forEach(s => {
                 s.initial = s.initial || { ratings:[0,0,0,0,0,0], notes:["","","","","",""], updatedAt:null };
                 s.ongoing = s.ongoing || { ratings:[0,0,0,0,0,0], notes:["","","","","",""], updatedAt:null };
+                if (s.eta === undefined) s.eta = '';
+                if (s.genere === undefined) s.genere = '';
+                if (s.categoria === undefined) s.categoria = false;
+                if (s.categoriaTipo === undefined) s.categoriaTipo = '';
+                if (s.categoriaAltro === undefined) s.categoriaAltro = '';
             });
             state = parsed;
         }
@@ -1809,26 +1873,118 @@ function confirmDeleteSubject(id, ev) {
 // ════════════════════════════════════════════════════════════════════
 // NEW SUBJECT MODAL
 // ════════════════════════════════════════════════════════════════════
+let nsGenere = '';        // 'M' | 'F'
+let nsCategoria = null;   // true | false | null
+let nsCategoriaTipo = ''; // selected category label
+
+function resetSelectGroup(groupId) {
+    document.querySelectorAll('#' + groupId + ' .select-opt')
+        .forEach(b => b.classList.remove('selected'));
+}
+
 function openNewSubjectModal() {
     document.getElementById('inputNome').value = '';
     document.getElementById('inputCognome').value = '';
+    document.getElementById('inputEta').value = '';
+    document.getElementById('inputCategoriaAltro').value = '';
+    document.getElementById('inputCategoriaAltro').style.display = 'none';
+    document.getElementById('categoriaListRow').style.display = 'none';
+    resetSelectGroup('genereSelect');
+    resetSelectGroup('categoriaToggle');
+    resetSelectGroup('categoriaSelect');
+    nsGenere = '';
+    nsCategoria = null;
+    nsCategoriaTipo = '';
     document.getElementById('newSubjectModal').classList.add('show');
     setTimeout(() => document.getElementById('inputNome').focus(), 100);
 }
 function closeNewSubjectModal() {
     document.getElementById('newSubjectModal').classList.remove('show');
 }
+
+// Gender toggle
+document.querySelectorAll('#genereSelect .select-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+        nsGenere = btn.dataset.val;
+        resetSelectGroup('genereSelect');
+        btn.classList.add('selected');
+    });
+});
+
+// Category yes/no toggle
+document.querySelectorAll('#categoriaToggle .select-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+        nsCategoria = (btn.dataset.val === 'si');
+        resetSelectGroup('categoriaToggle');
+        btn.classList.add('selected');
+        const listRow = document.getElementById('categoriaListRow');
+        if (nsCategoria) {
+            listRow.style.display = 'block';
+        } else {
+            listRow.style.display = 'none';
+            nsCategoriaTipo = '';
+            resetSelectGroup('categoriaSelect');
+            document.getElementById('inputCategoriaAltro').style.display = 'none';
+        }
+    });
+});
+
+// Category selection
+document.querySelectorAll('#categoriaSelect .select-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+        nsCategoriaTipo = btn.dataset.val;
+        resetSelectGroup('categoriaSelect');
+        btn.classList.add('selected');
+        const altro = document.getElementById('inputCategoriaAltro');
+        if (nsCategoriaTipo === 'Altro') {
+            altro.style.display = 'block';
+            setTimeout(() => altro.focus(), 50);
+        } else {
+            altro.style.display = 'none';
+        }
+    });
+});
+
 function createNewSubject() {
     const nome = document.getElementById('inputNome').value.trim();
     const cognome = document.getElementById('inputCognome').value.trim();
     if (!nome || !cognome) { showToast('Inserisci Nome e Cognome'); return; }
-    const s = emptySubject(nome, cognome);
+
+    const eta = document.getElementById('inputEta').value.trim();
+    const categoriaAltro = document.getElementById('inputCategoriaAltro').value.trim();
+
+    // Light validation for the category block
+    if (nsCategoria === true && !nsCategoriaTipo) {
+        showToast('Seleziona la categoria di appartenenza');
+        return;
+    }
+    if (nsCategoria === true && nsCategoriaTipo === 'Altro' && !categoriaAltro) {
+        showToast('Specifica la categoria "Altro"');
+        return;
+    }
+
+    const s = emptySubject({
+        nome,
+        cognome,
+        eta,
+        genere: nsGenere,
+        categoria: nsCategoria === true,
+        categoriaTipo: nsCategoria === true ? nsCategoriaTipo : '',
+        categoriaAltro: (nsCategoria === true && nsCategoriaTipo === 'Altro') ? categoriaAltro : ''
+    });
     state.subjects.push(s);
     persist();
     closeNewSubjectModal();
     currentSubjectId = s.id;
     openPhase('initial');
     showToast('Soggetto creato ✓');
+}
+
+// Helper: human-readable category for a subject
+function subjectCategoryLabel(s) {
+    if (!s.categoria) return null;
+    if (s.categoriaTipo === 'Altro') return s.categoriaAltro || 'Altro';
+    return s.categoriaTipo || null;
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -2028,11 +2184,23 @@ function renderReport() {
     else if (avg >= 2.5) { scoreLabel = 'IN PROGRESSO'; scoreEmoji = '📈'; }
     else if (avg > 0) { scoreLabel = 'NECESSITA SUPPORTO'; scoreEmoji = '⚠️'; }
 
+    // Demographic line
+    const demoParts = [];
+    if (subj.eta) demoParts.push(`${escapeHtml(subj.eta)} anni`);
+    if (subj.genere) demoParts.push(subj.genere === 'M' ? 'Maschio' : (subj.genere === 'F' ? 'Femmina' : escapeHtml(subj.genere)));
+    const demoLine = demoParts.length ? demoParts.join(' &middot; ') : '';
+    const catLabel = subjectCategoryLabel(subj);
+    const catHtml = catLabel
+        ? `<div style="display:inline-block;margin-top:8px;font-size:11px;font-weight:700;color:var(--accent-dark);background:#fef0e6;border:1px solid #fad7a0;padding:4px 10px;border-radius:10px;">&#127991; ${escapeHtml(catLabel)}</div>`
+        : '';
+
     let html = `
         <div style="background:var(--surface);border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow);text-align:center;">
             <div style="font-size:11px;color:var(--text-muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;">Soggetto</div>
             <div style="font-size:18px;font-weight:800;color:var(--primary);margin-top:4px;">${escapeHtml(fullName)}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Registrato il ${fmtDate(subj.createdAt)}</div>
+            ${demoLine ? `<div style="font-size:12px;color:var(--text-mid);margin-top:3px;font-weight:600;">${demoLine}</div>` : ''}
+            ${catHtml}
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Registrato il ${fmtDate(subj.createdAt)}</div>
         </div>
 
         <div class="report-summary">
