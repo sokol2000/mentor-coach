@@ -1170,7 +1170,14 @@ body {
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    /* Respect iOS safe areas (notch / home indicator) so the modal never
+       hides under the status bar or behind the home indicator. */
+    padding: max(20px, env(safe-area-inset-top, 20px))
+             20px
+             max(20px, env(safe-area-inset-bottom, 20px));
+    /* Allow scrolling the overlay itself as last-resort on tiny viewports */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 .privacy-overlay.show { display: flex; }
 .privacy-card {
@@ -1179,6 +1186,14 @@ body {
     padding: 24px 22px;
     max-width: 340px;
     width: 100%;
+    /* Card never taller than what's visible — content scrolls inside
+       so the "Ho letto e accetto" button is always reachable on iPhone SE
+       and devices where the privacy text fills the viewport. */
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* margin auto fallback if the parent doesn't apply flex centering */
+    margin: auto;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     animation: slideUp 0.3s ease;
 }
